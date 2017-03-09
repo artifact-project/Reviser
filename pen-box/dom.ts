@@ -18,8 +18,22 @@ export const INLINE_NODE: Object = {
 	applet: 1, basefont: 1, big: 1, font: 1, isindex: 1, strike: 1, style: 1, tt: 1
 };
 
-export function createElement(name: string): HTMLElement {
-	return document.createElement(name);
+export function createElement(name: string, attributes?: {[index:string]: any}): HTMLElement {
+	const element = document.createElement(name);
+
+	if (attributes) {
+		for (const key in attributes) {
+			if (attributes.hasOwnProperty(key)) {
+				if (key in element) {
+					(<any>element)[key] = attributes[key]
+				} else {
+					element.setAttribute(key, attributes[key]);
+				}
+			}
+		}
+	}
+
+	return element;
 }
 
 export function listenFrom(container: HTMLElement, attr: string, handle: (action: string, target: HTMLElement, evt: Event) => void) {
@@ -234,4 +248,8 @@ export function normalizeNodes(start: Node, end: Node, replace?:NormalizeReplace
 		mainLoop = cursor !== end;
 		cursor = !isTextNode(cursor) && cursor.firstChild || cursor.nextSibling || cursor.parentNode.nextSibling;
 	} while (mainLoop);
+}
+
+export function cloneNode(node: Node, deep?: boolean): Node {
+	return node.cloneNode(deep);
 }

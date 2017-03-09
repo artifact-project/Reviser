@@ -9,7 +9,7 @@ import {
 	getNextParentSibling,
 	unwrap,
 	findElementsByTagName,
-	getMaxDeepNode
+	getMaxDeepNode, createElement, cloneNode
 } from './dom';
 
 import {
@@ -109,11 +109,12 @@ export function removeStyle(range: Range, tagName: string): void {
 	range.setEnd(end, endOffset);
 }
 
-export function applyStyle(range: Range, tagName: string): void {
+export function applyStyle(range: Range, tagName: string, attributes?: {[index:string]: any}): void {
 	if (range.collapsed) {
 		return;
 	}
 
+	const wrapperElement = createElement(tagName, attributes);
 	let [start, startOffset, end, endOffset] = _toNormalizedRange(range);
 	let startWrappedParent = closest(start, tagName);
 	let endWrapperParent = closest(end, tagName);
@@ -126,7 +127,7 @@ export function applyStyle(range: Range, tagName: string): void {
 		if (startOffset < endOffset) {
 			setRangeStart(range, start, startOffset);
 			setRangeEnd(range, end, endOffset);
-			surroundContents(range, tagName);
+			surroundContents(range, cloneNode(wrapperElement));
 		}
 
 		return;
@@ -145,7 +146,7 @@ export function applyStyle(range: Range, tagName: string): void {
 		end,
 		endOffset,
 		endWrapperParent ? 'prev' : 'next',
-		tagName
+		wrapperElement
 	);
 
 	range.setStart(start, 0);
@@ -166,7 +167,7 @@ function _applyStyle(
 	end: Node,
 	endOffset: number,
 	vector: 'next' | 'prev',
-	tagName: string
+	wrapperElement: HTMLElement
 ) {
 	const isPrevMode = vector === 'prev';
 
@@ -175,6 +176,7 @@ function _applyStyle(
 		endOffset = startOffset;
 	}
 
+	const tagName = wrapperElement.tagName;
 	let cursor = start;
 	let parentChanged: number;
 	let range = createRange();
@@ -252,15 +254,15 @@ function _applyStyle(
 					range[isPrevMode ? 'setStartBefore' : 'setEndAfter'](cursor);
 				}
 
-				surroundContents(range, tagName);
+				surroundContents(range, cloneNode(wrapperElement));
 				isPrevMode ? range.setEnd(next, getNodeLength(next)) : range.setStartBefore(next);
 			} else if (cursor === end) {
 				range[isPrevMode ? 'setStart' : 'setEnd'](cursor, endOffset);
-				surroundContents(range, tagName);
+				surroundContents(range, cloneNode(wrapperElement));
 				return;
 			} else if (hasEnd && isEndLast) {
 				range[isPrevMode ? 'setStartBefore' : 'setEndAfter'](endRoot);
-				surroundContents(range, tagName);
+				surroundContents(range, cloneNode(wrapperElement));
 				return;
 			}
 		}

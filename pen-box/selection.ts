@@ -56,8 +56,8 @@ export function setRangeEnd(range: Range, node: Node, offset?: number) {
 	offset ? range.setEnd(node, offset) : range.setEndAfter(node);
 }
 
-export function surroundContents(range: Range, tagName: string) {
-	!range.collapsed && range.surroundContents(createElement(tagName));
+export function surroundContents(range: Range, tag: string | Node) {
+	!range.collapsed && range.surroundContents(isNode(<Node>tag) ? <Node>tag : createElement(<string>tag));
 }
 
 export function deleteContents(range: Range) {
