@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "outDir": "./compiled/",
+    "noImplicitAny": true,
+    "removeComments": false,
+    "module": "es6",
+    "target": "es5",
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "node",
+    "experimentalDecorators": true,
+    "sourceMap": true,
+    "typeRoots": [
+      "node_modules/@types"
+    ]
+  },
+  "exclude": ["compiled", "node_modules"]
+}

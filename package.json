@@ -1,0 +1,26 @@
+{
+  "name": "reviser",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "webpack",
+    "watch": "webpack --progress --colors --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "RubaXa <trash@rubaxa.org>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/qunit": "^2.0.31",
+    "awesome-typescript-loader": "^3.0.4",
+    "qunit": "^0.9.1",
+    "qunitjs": "^2.1.1",
+    "source-map-loader": "^0.1.6",
+    "ts-loader": "^2.0.0",
+    "typescript": "^2.1.6",
+    "webpack": "^2.2.1"
+  }
+}
