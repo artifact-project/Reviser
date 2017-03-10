@@ -276,85 +276,124 @@ export function cloneNode(node: Node, deep?: boolean): Node {
 	return node.cloneNode(deep);
 }
 
-export function createDOMStyleMatcher(style: any) {
-	const keys = Object.keys(style);
+interface IMatcher<A, T> {
+	keys: string[];
+	length: number;
+	attributes: A;
+	test: (attributes: T) => boolean;
+}
+
+interface IDOMAtrributeStyleMatcher extends IMatcher<any, CSSStyleDeclaration> {
+}
+
+interface IDOMAttributesMatcher extends IMatcher<any, Element> {
+	hasStyle: boolean;
+}
+
+interface IDOMMatcher {
+	tagName: string;
+	attributes: any;
+	attributesMatcher: IDOMAttributesMatcher;
+	test: (node: Element) => boolean;
+}
+
+export function createDOMStyleMatcher(attributes: any): IDOMAtrributeStyleMatcher {
+	const keys = Object.keys(attributes);
 	const length = keys.length;
 
-	return function styleMatcher(elementStyle: any) {
-		if (length) {
-			let idx = length;
+	return {
+		keys,
+		length,
+		attributes,
+		test: function styleMatcher(elementStyle: CSSStyleDeclaration) {
+			if (length) {
+				let idx = length;
 
-			while (idx--) {
-				const key = keys[idx];
-			 	const value = style[key];
-			 	const actualValue = elementStyle[key];
-			 	let check = true;
+				while (idx--) {
+					const key = keys[idx];
+					const value = attributes[key];
+					const actualValue = elementStyle[<any>key];
+					let check = true;
 
-				console.log(key, value, actualValue);
+					if (value === '*') {
+						check = !!actualValue;
+					} else {
+						check = value === actualValue
+					}
 
-			 	if (value === '*') {
-			 		check = !!actualValue;
-			 	} else {
-			 		check = value === actualValue
-			 	}
+					if (!check) {
+						return false;
+					}
+				}
 
-			 	if (!check) {
-			 		return false;
-			 	}
+				return true;
+			} else {
+				return false;
 			}
-
-			return true;
-		} else {
-			return false;
 		}
 	};
 }
 
-export function createDOMAttributesMatcher(attributes: any) {
+export function createDOMAttributesMatcher(attributes: any): IDOMAttributesMatcher {
 	const keys = Object.keys(attributes);
 	const length = keys.length;
+	let hasStyle = false;
 
 	if (attributes.hasOwnProperty('style')) {
+		hasStyle = true;
 		attributes.style = createDOMStyleMatcher(attributes.style);
 	}
 
-	return function attributesMatcher(node: Element): boolean {
-		if (length) {
-			let idx = length;
+	return {
+		keys,
+		length,
+		attributes,
+		hasStyle,
 
-			 while (idx--) {
-			 	const key = keys[idx];
-			 	const value = attributes[key];
-			 	let check = true;
+		test: function attributesMatcher(node: Element): boolean {
+			if (length) {
+				let idx = length;
 
-			 	if (key === 'style') {
-					check = value((<HTMLElement>node).style);
-			 	} else if (value === '*'){
-					check = node.hasAttribute(key);
-			 	} else {
-			 		check = value === node.getAttribute(key);
-			 	}
+				 while (idx--) {
+					const key = keys[idx];
+					const value = attributes[key];
+					let check = true;
 
-			 	if (!check) {
-			 		return false;
-			 	}
-			 }
+					if (key === 'style') {
+						check = value.test((<HTMLElement>node).style);
+					} else if (value === '*'){
+						check = node.hasAttribute(key);
+					} else {
+						check = value === node.getAttribute(key);
+					}
 
-			 return true;
-		} else {
-			return true;
+					if (!check) {
+						return false;
+					}
+				 }
+
+				 return true;
+			} else {
+				return true;
+			}
 		}
-	}
+	};
 }
 
-export function createDOMMatcher(tagName: string, attributes?: any) {
-	const attributesMatcher = attributes ? createDOMAttributesMatcher(attributes) : () => true;
+export function createDOMMatcher(tagName: string, attributes: any = {}): IDOMMatcher {
+	const attributesMatcher = createDOMAttributesMatcher(attributes);
 
-	return function domMatcher(node: Element): boolean {
-		if (tagName === '*' || isNode(node, tagName)) {
-			return attributesMatcher(node);
+	return {
+		tagName,
+		attributes,
+		attributesMatcher,
+
+		test: function domMatcher(node: Element): boolean {
+			if (tagName === '*' || isNode(node, tagName)) {
+				return attributesMatcher.test(node);
+			}
+
+			return false;
 		}
-
-		return false;
 	};
 }

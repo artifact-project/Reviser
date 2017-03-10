@@ -11,9 +11,16 @@ QUnit.test('add', (assert) => {
 	assert.equal(fragment.innerHTML, '<span style="color:red;">foo</span>');
 });
 
-QUnit.test('remove', (assert) => {
-	const {fragment, range} = createEditableFragment('<span style="color:red;">foo</span>', {select: true});
+QUnit.test('change', (assert) => {
+	const {fragment, range} = createEditableFragment('f<b style="color: blue">o</b>o', {select: true});
 
-	// removeStyle(range, 'span', {style: {color: 'red'}});
+	applyStyle(range, 'span', {style: {color: 'red'}});
+	assert.equal(fragment.innerHTML, '<span style="color:red;">f<b>o</b>o</span>');
 });
+
+// QUnit.test('remove', (assert) => {
+// 	const {fragment, range} = createEditableFragment('<span style="color:red;">foo</span>', {select: true});
+//
+// 	// removeStyle(range, 'span', {style: {color: 'red'}});
+// });
 
