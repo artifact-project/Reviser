@@ -18,13 +18,35 @@ export const INLINE_NODE: Object = {
 	applet: 1, basefont: 1, big: 1, font: 1, isindex: 1, strike: 1, style: 1, tt: 1
 };
 
+export function toCSSText(style: any): string {
+	let cssText = '';
+
+	if (style) {
+		if (typeof style === 'string') {
+			cssText = style;
+		} else {
+			for (const key in style) {
+				if (style.hasOwnProperty(key)) {
+					cssText += `${key}:${style[key]};`
+				}
+			}
+		}
+	}
+
+	return cssText;
+}
+
 export function createElement(name: string, attributes?: {[index:string]: any}): HTMLElement {
 	const element = document.createElement(name);
 
 	if (attributes) {
 		for (const key in attributes) {
 			if (attributes.hasOwnProperty(key)) {
-				if (key in element) {
+				const value = attributes[key];
+
+				if (key === 'style') {
+					element.setAttribute(key, toCSSText(value));
+				} else if (key in element) {
 					(<any>element)[key] = attributes[key]
 				} else {
 					element.setAttribute(key, attributes[key]);
@@ -252,4 +274,87 @@ export function normalizeNodes(start: Node, end: Node, replace?:NormalizeReplace
 
 export function cloneNode(node: Node, deep?: boolean): Node {
 	return node.cloneNode(deep);
+}
+
+export function createDOMStyleMatcher(style: any) {
+	const keys = Object.keys(style);
+	const length = keys.length;
+
+	return function styleMatcher(elementStyle: any) {
+		if (length) {
+			let idx = length;
+
+			while (idx--) {
+				const key = keys[idx];
+			 	const value = style[key];
+			 	const actualValue = elementStyle[key];
+			 	let check = true;
+
+				console.log(key, value, actualValue);
+
+			 	if (value === '*') {
+			 		check = !!actualValue;
+			 	} else {
+			 		check = value === actualValue
+			 	}
+
+			 	if (!check) {
+			 		return false;
+			 	}
+			}
+
+			return true;
+		} else {
+			return false;
+		}
+	};
+}
+
+export function createDOMAttributesMatcher(attributes: any) {
+	const keys = Object.keys(attributes);
+	const length = keys.length;
+
+	if (attributes.hasOwnProperty('style')) {
+		attributes.style = createDOMStyleMatcher(attributes.style);
+	}
+
+	return function attributesMatcher(node: Element): boolean {
+		if (length) {
+			let idx = length;
+
+			 while (idx--) {
+			 	const key = keys[idx];
+			 	const value = attributes[key];
+			 	let check = true;
+
+			 	if (key === 'style') {
+					check = value((<HTMLElement>node).style);
+			 	} else if (value === '*'){
+					check = node.hasAttribute(key);
+			 	} else {
+			 		check = value === node.getAttribute(key);
+			 	}
+
+			 	if (!check) {
+			 		return false;
+			 	}
+			 }
+
+			 return true;
+		} else {
+			return true;
+		}
+	}
+}
+
+export function createDOMMatcher(tagName: string, attributes?: any) {
+	const attributesMatcher = attributes ? createDOMAttributesMatcher(attributes) : () => true;
+
+	return function domMatcher(node: Element): boolean {
+		if (tagName === '*' || isNode(node, tagName)) {
+			return attributesMatcher(node);
+		}
+
+		return false;
+	};
 }
