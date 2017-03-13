@@ -37,9 +37,11 @@ export function createEditableFragment(html: string, options: IEditableFragmentO
 
 
 interface ICase {
+	message?: string;
 	from: string;
 	to: string;
-	first?: boolean;
+	first?: boolean; // проверить что firstChild, всё ещё он
+	last?: boolean;
 	start?: string;
 	startOffset?: number;
 	end?: string;
@@ -70,10 +72,10 @@ function querySelector(node: Element, selector: string): Node {
 
 export function testItFactory(exec: (range: Range, container?: HTMLElement) => void, options?:IEditableFragmentOptions): (cases:ICase[]) => void {
 	return function testIt(cases:ICase[]): void {
-		cases.forEach(({from, to, first, start, startOffset, end, endOffset, onend}) => {
-			QUnit.test(`${from} -> ${to}`.replace(new RegExp(ZWS, 'g'), '{ZWS}'), (assert) => {
+		cases.forEach(({message, from, to, first, last, start, startOffset, end, endOffset, onend}) => {
+			QUnit.test(message || `${from} -> ${to}`.replace(new RegExp(ZWS, 'g'), '{ZWS}'), (assert) => {
 				const {fragment, range} = createEditableFragment(from, options || {select: true});
-				const {firstChild} = fragment;
+				const {firstChild, lastChild} = fragment;
 
 				if (start) {
 					range.setStart(querySelector(fragment, start), startOffset | 0);
@@ -91,8 +93,10 @@ export function testItFactory(exec: (range: Range, container?: HTMLElement) => v
 				console.dir(fragment);
 				exec(range, fragment);
 
-				assert.equal(fragment.innerHTML, to);
-				first && assert.equal(fragment.firstChild, firstChild);
+				assert.equal(fragment.innerHTML, to, 'form -> to');
+
+				first && assert.equal(fragment.firstChild, firstChild, 'firstChild');
+				last && assert.equal(fragment.lastChild, lastChild, 'lastChild');
 
 				if (!(fragment === range.commonAncestorContainer || fragment.contains(range.commonAncestorContainer))) {
 					assert.ok(false, 'selection range');

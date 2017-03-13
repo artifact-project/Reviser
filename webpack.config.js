@@ -5,6 +5,9 @@ module.exports = {
 	entry: {
 		'tests': './tests/index.ts',
 		'sandbox': './tests/sandbox/sandbox.ts',
+		'vendor': [
+			'qunitjs',
+		]
 	},
 
 	output: {
@@ -27,5 +30,8 @@ module.exports = {
 		},
 		extensions: [".tsx", ".ts", ".js"]
 	},
+	plugins: [
+		new webpack.optimize.CommonsChunkPlugin({ name: 'vendor', filename: 'vendor.bundle.js' }),
+	],
 	devtool: 'inline-source-map',
 };

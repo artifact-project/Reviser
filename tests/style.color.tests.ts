@@ -1,26 +1,236 @@
 import QUnit from 'qunit';
 import {applyStyle, removeStyle} from '../pen-box/style';
-import {createEditableFragment} from './_helpers';
+import {createEditableFragment, testItFactory} from './_helpers';
 
 QUnit.module('Reviser / style / color');
 
-QUnit.test('add', (assert) => {
-	const {fragment, range} = createEditableFragment('foo', {select: true});
+const testIt = testItFactory((range) => applyStyle(range, '*', {style: {color: 'red'}}));
 
-	applyStyle(range, 'span', {style: {color: 'red'}});
-	assert.equal(fragment.innerHTML, '<span style="color:red;">foo</span>');
-});
+testIt([
+	{
+		message: 'Просто текст',
+		from: 'x',
+		to: '<span style="color: red;">x</span>',
+	},
 
-QUnit.test('change', (assert) => {
-	const {fragment, range} = createEditableFragment('f<b style="color: blue">o</b>o', {select: true});
+	{
+		message: 'В середине есть <B> покрашенный цветом',
+		from: 'x<b style="color: blue">-</b>y',
+		to: '<span style="color: red;">x<b>-</b>y</span>',
+	},
 
-	applyStyle(range, 'span', {style: {color: 'red'}});
-	assert.equal(fragment.innerHTML, '<span style="color:red;">f<b>o</b>o</span>');
-});
+	{
+		message: 'В середине есть <SPAN> покрашенный цветом, SPAN должен быть вырезан',
+		from: 'x<span style="color: blue">-</span>y',
+		to: '<span style="color: red;">x-y</span>',
+	},
 
-// QUnit.test('remove', (assert) => {
-// 	const {fragment, range} = createEditableFragment('<span style="color:red;">foo</span>', {select: true});
-//
-// 	// removeStyle(range, 'span', {style: {color: 'red'}});
-// });
+	{
+		message: 'В середине есть <SPAN> покрашенный и залитый цветом, SPAN должен остаться',
+		from: 'f<span style="color: blue; background: black">o</span>o',
+		to: '<span style="color: red;">f<span style="background: black;">o</span>o</span>',
+	},
 
+	{
+		message: 'Выделен цветной фрагмент',
+		from: '<span style="color: blue;">x</span>y',
+		to: '<span style="color: red;">xy</span>',
+		first: true,
+	},
+
+	{
+		message: 'Выделение начинается с цветного <SPAN> и заканчивается обычным тестом',
+		from: '<span style="color: blue; background: black">x</span>y',
+		to: '<span style="color: red; background: black;">x</span><span style="color: red;">y</span>',
+		first: true,
+	},
+
+	{
+		message: 'Выделение начинается с цветного <B> и заканчивается обычным тестом',
+		from: '<b style="color: blue;">x--</b>--y',
+		to: '<b style="color: red;">x--</b><span style="color: red;">--y</span>',
+		first: true,
+	},
+
+	{
+		message: 'Выделение начинается внутри цветного <SPAN> и заканчивается обычным тестом',
+		from: '<span style="color: blue;">x--</span>--y',
+		to: '<span style="color: blue;">x</span><span style="color: red;">----y</span>',
+		start: '#first #first',
+		startOffset: 1,
+		first: true,
+	},
+
+	{
+		message: 'Выделение начинается внутри цветного <B> и заканчивается обычным тестом',
+		from: '<b style="color: blue;">x--</b>--y',
+		to: '<b style="color: blue;">x</b><b style="color: red;">--</b><span style="color: red;">--y</span>',
+		start: '#first #first',
+		startOffset: 1,
+		first: true,
+	},
+
+	{
+		message: 'Выделение начинается внутри цветного <SPAN> сразу перед пустым <B> и заканчивается обычным тестом',
+		from: '<span style="color: blue;">x<b></b>-</span>y',
+		to: '<span style="color: blue;">x</span><span style="color: red;"><b></b>-y</span>',
+		start: '#first',
+		startOffset: 1,
+		first: true,
+	},
+
+	{
+		message: 'Выделение начинается внутри многоцветного <SPAN> и заканчивается обычным тестом',
+		from: '<span style="color: blue; background: black;">x-</span>y',
+		to: '<span style="color: blue; background: black;">x</span>' +
+			'<span style="color: red; background: black;">-</span>' +
+			'<span style="color: red;">y</span>',
+		start: '#first #first',
+		startOffset: 1,
+		first: true,
+	},
+
+	{
+		message: 'Выделен цветной <SPAN>',
+		from: '<span style="color: blue;">x</span>',
+		to: '<span style="color: red;">x</span>',
+		first: true,
+	},
+
+	{
+		message: 'Выделен многоцветный <SPAN>',
+		from: '<span style="color: blue; background: black;">x</span>',
+		to: '<span style="color: red; background: black;">x</span>',
+		first: true,
+	},
+
+	{
+		message: 'Выделение начинается с текста и заканчивается цветным <SPAN>',
+		from: 'x<span style="color: blue;">y</span>',
+		to: '<span style="color: red;">xy</span>',
+		last: true,
+	},
+
+	{
+		message: 'Выделение начинается с текста и заканчивается многоцветным <SPAN>',
+		from: 'x<span style="color: blue; background: black;">y</span>',
+		to: '<span style="color: red;">x</span><span style="color: red; background: black;">y</span>',
+		last: true,
+	},
+
+	{
+		message: 'Выделение начинается с текста и заканчивается вынутри цветного <SPAN>',
+		from: 'x--<span style="color: blue;">--y</span>',
+		to: '<span style="color: red;">x----</span><span style="color: blue;">y</span>',
+		end: '#last #first',
+		endOffset: 2,
+		last: true,
+	},
+
+	{
+		message: 'Выделение начинается с текста и заканчивается цветным <B>',
+		from: 'x--<b style="color: blue;">--y</b>',
+		to: '<span style="color: red;">x--</span><b style="color: red;">--y</b>',
+		last: true,
+	},
+
+	{
+		message: 'Выделение находится внутри цветного <SPAN>',
+		from: '<span style="color: blue;">x--y</span>',
+		to: '<span style="color: blue;">x</span><span style="color: red;">--</span><span style="color: blue;">y</span>',
+		start: '#first #first',
+		startOffset: 1,
+		end: '#first #first',
+		endOffset: 3,
+	},
+
+	{
+		message: 'Выделение находится внутри цветного <B>',
+		from: '<b style="color: blue;">x--y</b>',
+		to: '<b style="color: blue;">x</b><b style="color: red;">--</b><b style="color: blue;">y</b>',
+		start: '#first #first',
+		startOffset: 1,
+		end: '#first #first',
+		endOffset: 3,
+	},
+
+	{
+		message: 'Выделение начинается внутри цветного <SPAN>',
+		from: '<span style="color: blue;">x--y</span>',
+		to: '<span style="color: blue;">x-</span><span style="color: red;">-y</span>',
+		start: '#first #first',
+		startOffset: 2,
+	},
+
+	{
+		message: 'Выделение начинается внутри цветного <B> и заканчивается в его конце',
+		from: '<b style="color: blue;">x--y</b>',
+		to: '<b style="color: blue;">x-</b><b style="color: red;">-y</b>',
+		start: '#first #first',
+		startOffset: 2,
+	},
+
+	{
+		message: 'Выделение начинается с цветного <SPAN> не доходя до его конца',
+		from: '<span style="color: blue;">x--y</span>',
+		to: '<span style="color: red;">x-</span><span style="color: blue;">-y</span>',
+		end: '#first #first',
+		endOffset: 2,
+	},
+
+	{
+		message: 'Выделение начинается с цветного <B> не доходя до его конца',
+		from: '<b style="color: blue;">x--y</b>',
+		to: '<b style="color: red;">x-</b><b style="color: blue;">-y</b>',
+		end: '#first #first',
+		endOffset: 2,
+	},
+
+	{
+		message: 'Выделение начинается с цветного <SPAN> и заканчивается другим цветным <SPAN>',
+		from: '<span style="color: blue;">x-</span><span style="color: green;">-y</span>',
+		to: '<span style="color: red;">x--y</span>',
+		first: true,
+	},
+
+	{
+		message: 'Выделение начинается с цветного <SPAN> и заканчивается внутри другого цветного <SPAN>',
+		from: '<span style="color: blue;">x-</span><span style="color: green;">-y</span>',
+		to: '<span style="color: red;">x--</span><span style="color: green;">y</span>',
+		// first: true,
+		end: '#last #first',
+		endOffset: 1,
+		onend(assert, range) {
+			assert.equal(range.endContainer.nodeValue, '-');
+			assert.equal(range.endOffset, 1);
+		}
+	},
+
+	{
+		message: 'Выделение начинается с цветного <SPAN> и заканчивается другим многоцветным <SPAN>',
+		from: '<span style="color: blue;">x-</span><span style="color: green; background: black;">-y</span>',
+		to: '<span style="color: red;">x-</span><span style="color: red; background: black;">-y</span>',
+		first: true,
+		last: true,
+	},
+
+	{
+		message: 'Выделение начинается с цветного <SPAN>, а заканчивается цветным <B>',
+		from: '<span style="color: blue;">x-</span><b style="color: blue;">-y</b>',
+		to: '<span style="color: red;">x-</span><b style="color: red;">-y</b>',
+		first: true,
+		last: true,
+	},
+
+	{
+		message: 'Выделение начинается внутри цветного <SPAN> и заканчивается внутри другого цветного <SPAN>',
+		from: '<span style="color: blue;">x-</span><span style="color: green;">-y</span>',
+		to: '<span style="color: blue;">x</span><span style="color: red;">--</span><span style="color: green;">y</span>',
+		// first: true,
+		// last: true,
+		start: '#first #first',
+		startOffset: 1,
+		end: '#last #first',
+		endOffset: 1,
+	},
+]);

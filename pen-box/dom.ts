@@ -27,7 +27,7 @@ export function toCSSText(style: any): string {
 		} else {
 			for (const key in style) {
 				if (style.hasOwnProperty(key)) {
-					cssText += `${key}:${style[key]};`
+					cssText += `${key}: ${style[key]};`
 				}
 			}
 		}
@@ -36,7 +36,7 @@ export function toCSSText(style: any): string {
 	return cssText;
 }
 
-export function createElement(name: string, attributes?: {[index:string]: any}): HTMLElement {
+export function createElement(name: string, attributes?: {[index: string]: any}): HTMLElement {
 	const element = document.createElement(name);
 
 	if (attributes) {
@@ -92,7 +92,7 @@ export function isNode(node: Node, name?: string): boolean {
 	return node ? node.nodeType > 0 && (name == null || name.toLowerCase() === node.nodeName.toLowerCase()) : false;
 }
 
-export function isTextNode(node: Node): boolean {
+export function isTextNode(node: Node): node is Text {
 	return node ? node.nodeType === TEXT_NODE : false;
 }
 
@@ -120,12 +120,16 @@ export function isEmptyNode(node: Node): boolean {
 	return !getNodeLength(node);
 }
 
-export function closest(node: Node, tagName: string): Node | null {
-	while (node && !isNode(node, tagName)) {
+export function closest(node: Node, matcher: string | IDOMMatcher): HTMLElement | null {
+	if (typeof matcher === 'string') {
+		matcher = createDOMMatcher(matcher);
+	}
+
+	while (node && !matcher.test(node)) {
 		node = node.parentNode;
 	}
 
-	return node;
+	return <HTMLElement>node;
 }
 
 export function isSelfClosedElement(node: Node): boolean {
@@ -136,7 +140,7 @@ export function isInlineElement(node: Node): boolean {
 	return node ? (INLINE_NODE.hasOwnProperty(node.nodeName.toLowerCase()) || isTextNode(node)) : false;
 }
 
-export function isBlockElement(node: Node, style?:CSSStyleDeclaration): boolean {
+export function isBlockElement(node: Node, style?: CSSStyleDeclaration): boolean {
 	if (node && !isTextNode(node)) {
 		style = style || window.getComputedStyle(<Element>node);
 		return (style.display && style.display !== 'auto') ? style.display === 'block' : !isInlineElement(node);
@@ -145,13 +149,12 @@ export function isBlockElement(node: Node, style?:CSSStyleDeclaration): boolean 
 	}
 }
 
-export function isZeroSizeElement(node: Node, style?:CSSStyleDeclaration): boolean {
+export function isZeroSizeElement(node: Node, style?: CSSStyleDeclaration): boolean {
 	if (node) {
 		style = style || window.getComputedStyle(<Element>node);
 
 		return (
-			(style.display === 'none') ||
-			!(
+			(style.display === 'none') || !(
 				parseInt(style.width, 10) ||
 				parseInt(style.marginLeft, 10) ||
 				parseInt(style.marginRight, 10)
@@ -172,7 +175,7 @@ export function splitTextNode(node: Text, offset: number): [Text, Text] {
 	return [leftNode, node];
 }
 
-export function unwrap(target: Element, newParent?: Element): [Node, Node] {
+export function unwrap(target: Element, newParent?: Element, removeOldParent: boolean = true): [Node, Node] {
 	const result: [Node, Node] = [target.firstChild, target.lastChild];
 	const parent = target.parentNode;
 
@@ -188,7 +191,7 @@ export function unwrap(target: Element, newParent?: Element): [Node, Node] {
 		}
 	}
 
-	parent.removeChild(target);
+	removeOldParent && parent.removeChild(target);
 
 	return result;
 }
@@ -207,31 +210,18 @@ export function getNextParentSibling(node: Node, type: 'next' | 'prev' = 'next',
 	return parentNode ? getSibling(parentNode, type) || getNextParentSibling(parentNode, type) : null;
 }
 
-export function findElementsByTagName(container: HTMLElement, tagName: string, andRoot?:boolean): Element[] {
-	const elements = container.getElementsByTagName(tagName);
-	const length = elements.length;
-	const results = [];
-
-	andRoot && isNode(container, tagName) && results.push(container);
-
-	if (length > 0) {
-		if (length === 1) {
-			results.push(elements[0]);
-		} else {
-			for (let i = 0; i < length; i++) {
-				results.push(elements[i]);
-			}
-		}
-	}
-
-	return results;
-}
-
-export function getMaxDeepNode(node: Node, offset: number, type: 'start' | 'end'): [Node, number] {
+export function getMaxDeepNode(node: Node, offset: number | 'max', type: 'start' | 'end'): [Node, number] {
 	if (isTextNode(node) || isSelfClosedElement(node)) {
-		return [node, offset];
+		return [node, offset === 'max' ? getNodeLength(node) : offset];
 	} else {
-		const nextNode = offset ? node.childNodes[offset] || node.childNodes[offset - 1] : node.firstChild || node;
+		let nextNode: Node;
+
+		if (offset === 'max') {
+			nextNode = node.lastChild;
+		} else {
+			nextNode = offset ? node.childNodes[offset] || node.childNodes[offset - 1] : node.firstChild || node
+		}
+
 		const nextLength = getNodeLength(nextNode);
 
 		if (nextLength) {
@@ -253,10 +243,10 @@ export function getNodeIndex(node: Node) {
 }
 
 interface NormalizeReplaceMap {
-	[index:string]: string;
+	[index: string]: string;
 }
 
-export function normalizeNodes(start: Node, end: Node, replace?:NormalizeReplaceMap) {
+export function normalizeNodes(start: Node, end: Node, replace?: NormalizeReplaceMap) {
 	let cursor = start;
 	let mainLoop;
 
@@ -283,21 +273,23 @@ interface IMatcher<A, T> {
 	test: (attributes: T) => boolean;
 }
 
-interface IDOMAtrributeStyleMatcher extends IMatcher<any, CSSStyleDeclaration> {
+export interface IDOMStyleMatcher extends IMatcher<any, CSSStyleDeclaration> {
+	// equal: (style: CSSStyleDeclaration) => boolean;
 }
 
-interface IDOMAttributesMatcher extends IMatcher<any, Element> {
-	hasStyle: boolean;
+export interface IDOMAttributesMatcher extends IMatcher<any, Element> {
+	styleMatcher: IDOMStyleMatcher;
 }
 
-interface IDOMMatcher {
+export interface IDOMMatcher {
 	tagName: string;
 	attributes: any;
 	attributesMatcher: IDOMAttributesMatcher;
-	test: (node: Element) => boolean;
+	styleMatcher: IDOMStyleMatcher;
+	test: (node: Node) => boolean;
 }
 
-export function createDOMStyleMatcher(attributes: any): IDOMAtrributeStyleMatcher {
+export function createDOMStyleMatcher(attributes: any, anyValue?: boolean): IDOMStyleMatcher {
 	const keys = Object.keys(attributes);
 	const length = keys.length;
 
@@ -305,6 +297,7 @@ export function createDOMStyleMatcher(attributes: any): IDOMAtrributeStyleMatche
 		keys,
 		length,
 		attributes,
+
 		test: function styleMatcher(elementStyle: CSSStyleDeclaration) {
 			if (length) {
 				let idx = length;
@@ -312,10 +305,10 @@ export function createDOMStyleMatcher(attributes: any): IDOMAtrributeStyleMatche
 				while (idx--) {
 					const key = keys[idx];
 					const value = attributes[key];
-					const actualValue = elementStyle[<any>key];
+					const actualValue = elementStyle.getPropertyValue(key);
 					let check = true;
 
-					if (value === '*') {
+					if (value === '*' || anyValue) {
 						check = !!actualValue;
 					} else {
 						check = value === actualValue
@@ -326,42 +319,38 @@ export function createDOMStyleMatcher(attributes: any): IDOMAtrributeStyleMatche
 					}
 				}
 
-				return true;
-			} else {
-				return false;
 			}
+
+			return true;
 		}
 	};
 }
 
-export function createDOMAttributesMatcher(attributes: any): IDOMAttributesMatcher {
+const emptyStyleMatcher = createDOMStyleMatcher({});
+
+export function createDOMAttributesMatcher(attributes: any, anyValue?: boolean): IDOMAttributesMatcher {
 	const keys = Object.keys(attributes);
 	const length = keys.length;
-	let hasStyle = false;
-
-	if (attributes.hasOwnProperty('style')) {
-		hasStyle = true;
-		attributes.style = createDOMStyleMatcher(attributes.style);
-	}
+	let styleMatcher = attributes.style ? createDOMStyleMatcher(attributes.style, anyValue) : emptyStyleMatcher;
 
 	return {
 		keys,
 		length,
 		attributes,
-		hasStyle,
+		styleMatcher,
 
 		test: function attributesMatcher(node: Element): boolean {
 			if (length) {
 				let idx = length;
 
-				 while (idx--) {
+				while (idx--) {
 					const key = keys[idx];
 					const value = attributes[key];
 					let check = true;
 
 					if (key === 'style') {
-						check = value.test((<HTMLElement>node).style);
-					} else if (value === '*'){
+						check = styleMatcher.test((<HTMLElement>node).style);
+					} else if (value === '*' || anyValue) {
 						check = node.hasAttribute(key);
 					} else {
 						check = value === node.getAttribute(key);
@@ -370,27 +359,29 @@ export function createDOMAttributesMatcher(attributes: any): IDOMAttributesMatch
 					if (!check) {
 						return false;
 					}
-				 }
-
-				 return true;
-			} else {
-				return true;
+				}
 			}
+
+			return true;
 		}
 	};
 }
 
-export function createDOMMatcher(tagName: string, attributes: any = {}): IDOMMatcher {
-	const attributesMatcher = createDOMAttributesMatcher(attributes);
+const emptyDOMAttributesMatcher = createDOMAttributesMatcher({});
+
+export function createDOMMatcher(tagName: string, attributes?: any, anyValue?: boolean): IDOMMatcher {
+	const attributesMatcher = attributes ? createDOMAttributesMatcher(attributes, anyValue) : emptyDOMAttributesMatcher;
 
 	return {
 		tagName,
 		attributes,
-		attributesMatcher,
 
-		test: function domMatcher(node: Element): boolean {
-			if (tagName === '*' || isNode(node, tagName)) {
-				return attributesMatcher.test(node);
+		attributesMatcher,
+		styleMatcher: attributesMatcher.styleMatcher,
+
+		test: function domMatcher(node: Node): boolean {
+			if (node && (tagName === '*' && !isTextNode(node) || isNode(node, tagName))) {
+				return attributesMatcher.test(<Element>node);
 			}
 
 			return false;
