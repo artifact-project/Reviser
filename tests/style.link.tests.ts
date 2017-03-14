@@ -4,14 +4,14 @@ import {createEditableFragment} from './_helpers';
 
 QUnit.module('Reviser / style / link');
 
-QUnit.test('Add anchor', (assert) => {
+QUnit.test('Якорь', (assert) => {
 	const {fragment, range} = createEditableFragment('foo', {select: true});
 
 	applyStyle(range, 'a', {name: 'bar'});
 	assert.equal(fragment.innerHTML, '<a name="bar">foo</a>');
 });
 
-QUnit.test('Add link', (assert) => {
+QUnit.test('Ссылка', (assert) => {
 	const {fragment, range} = createEditableFragment('foo<div>bar</div>', {select: true});
 
 	applyStyle(range, 'a', {href: 'http://baz'});

@@ -62,10 +62,11 @@ testIt([
 	},
 
 	{
+		message: 'Выделение начинается в <B>, который вложен в <DIV> и заканчивается <B>, который вложен в [B > DIV]',
 		from: '<div><b>x-[-</b><div><b>!</b></div></div><b>-</b><div><b>]-</b></div><b>x</b>',
 		to: '<div><b>x-</b>[-<div>!</div></div>-<div>]<b>-</b></div><b>x</b>',
 		start: 'b #first', startOffset: 2,
-		end: 'div:nth-child(3) b #first', endOffset: 1
+		end: 'div:nth-child(3) b #first', endOffset: 1,
 	},
 
 	{
