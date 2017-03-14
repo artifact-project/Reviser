@@ -514,7 +514,7 @@ function _applyStyle(
 			if (isPrevMode) {
 				isEndLast = hasEnd && getMaxDeepNode(cursor, 0, 'end')[0] === end && !endOffset;
 			} else {
-				isEndLast = hasEnd && getMaxDeepNode(cursor, cursor.childNodes.length, 'end')[0] === end && getNodeLength(end) === endOffset;
+				isEndLast = hasEnd && getMaxDeepNode(cursor, 'max', 'end')[0] === end && getNodeLength(end) === endOffset;
 			}
 
 			endRoot = endRoot || isEndLast && cursor;

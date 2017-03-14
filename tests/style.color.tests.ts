@@ -247,7 +247,7 @@ testIt([
 	},
 
 	{
-		message: 'Выделение начинается внутри цветного <SPAN> и заканчивается внутри другого цветного <B>',
+		message: 'Выделение начинается внутри цветного <SPAN> и заканчивается внутри цветного <B>',
 		from: '<span style="color: blue;">x-</span><b style="color: green;">-y</b>',
 		to: '<span style="color: blue;">x</span>' +
 			'<span style="color: red;">-</span>' +
@@ -259,5 +259,19 @@ testIt([
 		startOffset: 1,
 		end: '#last #first',
 		endOffset: 1,
+	},
+
+	{
+		message: 'Выделение начинается внутри многоцветного <I> и заканчивается внутри многоцветного <B>, а между ними текст',
+		from: '<i style="color: blue; background: black;">x--</i>wow<b style="color: green; background: yellow;">--y</b>',
+		to: '<i style="color: blue; background: black;">x</i>' +
+			'<i style="color: red; background: black;">--</i>' +
+			'<span style="color: red;">wow</span>' +
+			'<b style="color: red; background: yellow;">--</b>' +
+			'<b style="color: green; background: yellow;">y</b>',
+		start: '#first #first',
+		startOffset: 1,
+		end: '#last #first',
+		endOffset: 2,
 	},
 ]);

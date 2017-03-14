@@ -21,7 +21,7 @@ export function wrap(range: Range, tagName: string) {
 				range.setEndAfter(startWrapper);
 				removeNode(startWrapper);
 			} else {
-				let [last, lastOffset] = getMaxDeepNode(startWrapper, getNodeLength(startWrapper), 'end');
+				let [last, lastOffset] = getMaxDeepNode(startWrapper, 'max', 'end');
 
 				if (last === cursor && lastOffset === startOffset) {
 					// Курсор стоит вконце строки, поэтому нужно создать пустую ноду
