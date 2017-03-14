@@ -469,7 +469,7 @@ function _applyStyle(
 
 	if (isPrevMode) {
 		[start, end] = [end, start];
-		endOffset = startOffset;
+		[endOffset, startOffset] = [startOffset, endOffset];
 	}
 
 	let cursor = start;

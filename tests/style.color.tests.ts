@@ -207,6 +207,18 @@ testIt([
 	},
 
 	{
+		message: 'Выделение начинается внутри цветного <SPAN> и заканчивается в конце другого цветного <SPAN>',
+		from: '<span style="color: blue;">x-</span><span style="color: green;">-y</span>',
+		to: '<span style="color: blue;">x</span><span style="color: red;">--y</span>',
+		start: '#first #first',
+		startOffset: 1,
+		onend(assert, range) {
+			assert.equal(range.startContainer.nodeValue, '-');
+			assert.equal(range.startOffset, 0);
+		}
+	},
+
+	{
 		message: 'Выделение начинается с цветного <SPAN> и заканчивается другим многоцветным <SPAN>',
 		from: '<span style="color: blue;">x-</span><span style="color: green; background: black;">-y</span>',
 		to: '<span style="color: red;">x-</span><span style="color: red; background: black;">-y</span>',
@@ -226,8 +238,23 @@ testIt([
 		message: 'Выделение начинается внутри цветного <SPAN> и заканчивается внутри другого цветного <SPAN>',
 		from: '<span style="color: blue;">x-</span><span style="color: green;">-y</span>',
 		to: '<span style="color: blue;">x</span><span style="color: red;">--</span><span style="color: green;">y</span>',
-		// first: true,
-		// last: true,
+		first: true,
+		last: true,
+		start: '#first #first',
+		startOffset: 1,
+		end: '#last #first',
+		endOffset: 1,
+	},
+
+	{
+		message: 'Выделение начинается внутри цветного <SPAN> и заканчивается внутри другого цветного <B>',
+		from: '<span style="color: blue;">x-</span><b style="color: green;">-y</b>',
+		to: '<span style="color: blue;">x</span>' +
+			'<span style="color: red;">-</span>' +
+			'<b style="color: red;">-</b>' +
+			'<b style="color: green;">y</b>',
+		first: true,
+		last: true,
 		start: '#first #first',
 		startOffset: 1,
 		end: '#last #first',
