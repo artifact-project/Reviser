@@ -96,6 +96,12 @@ testColorIt([
 	},
 
 	{
+		message: 'Цветной, да не тот, <SPAN>',
+		from: '<span style="background: red">x</span>',
+		to: '<span style="background: red">x</span>',
+	},
+
+	{
 		message: 'Цветной <B>',
 		from: '<b style="color: red">x</b>',
 		to: '<b>x</b>',
@@ -126,6 +132,31 @@ testColorIt([
 	},
 
 	{
+		message: 'Выделение начинается в цветном <SPAN> и заканчивается текстом',
+		from: '<span style="color: red;">x-</span>-y',
+		to: '<span style="color: red;">x</span>--y',
+		start: '#first #first',
+		startOffset: 1,
+	},
+
+	{
+		message: 'Выделение начинается в цветном <B> и заканчивается текстом',
+		from: '<b style="color: red;">x-</b>-y',
+		to: '<b style="color: red;">x</b><b>-</b>-y',
+		start: '#first #first',
+		startOffset: 1,
+	},
+
+	{
+		message: 'Выделение начинается в многоцветном <SPAN> и заканчивается текстом',
+		from: '<span style="color: red; background: black;">x-</span>-y',
+		to: '<span style="color: red; background: black;">x</span><span style="background: black;">-</span>-y',
+		start: '#first #first',
+		startOffset: 1,
+	},
+
+
+	{
 		message: 'Выделен текст и цветной <SPAN>',
 		from: 'x--<span style="color: red;">y</span>',
 		to: 'x--y',
@@ -138,18 +169,87 @@ testColorIt([
 	},
 
 	{
-		message: 'Выделение начинается в цветном <SPAN> и заканчивается текстом',
-		from: '<span style="color: red;">x-</span>-y',
-		to: '<span style="color: red;">x</span>--y',
-		start: '#first #first',
-		startOffset: 1,
+		message: 'Выделение начинается с текста и кончается внутри цветного <SPAN>',
+		from: 'x-<span style="color: red;">-y</span>',
+		to: 'x--<span style="color: red;">y</span>',
+		end: '#last #first',
+		endOffset: 1,
 	},
 
-	// {
-	// 	message: 'Выделение начинается в цветном <B> и заканчивается текстом',
-	// 	from: '<b style="color: red;">x-</b>-y',
-	// 	to: '<b style="color: red;">x</b><b>-</b>-y',
-	// 	start: '#first #first',
-	// 	startOffset: 1,
-	// },
+	{
+		message: 'Выделение начинается с текста и кончается внутри цветного <b>',
+		from: 'x-<b style="color: red;">-y</b>',
+		to: 'x-<b>-</b><b style="color: red;">y</b>',
+		end: '#last #first',
+		endOffset: 1,
+	},
+
+	{
+		message: 'Выделение начинается с текста и кончается внутри многоцветного <SPAN>',
+		from: 'x-<span style="color: red; background: black;">-y</span>',
+		to: 'x-<span style="background: black;">-</span><span style="color: red; background: black;">y</span>',
+		end: '#last #first',
+		endOffset: 1,
+	},
+
+	{
+		message: 'Выделение начинается с текста и кончается внутри многоцветного <B>',
+		from: 'x-<b style="color: red; background: black;">-y</b>',
+		to: 'x-<b style="background: black;">-</b><b style="color: red; background: black;">y</b>',
+		end: '#last #first',
+		endOffset: 1,
+	},
+
+	{
+		message: 'Выделение внутри цветного <SPAN>',
+		from: '<span style="color: red">x--y</span>',
+		to: '<span style="color: red">x</span>--<span style="color: red">y</span>',
+		start: '#first #first',  startOffset: 1,
+		end: '#last #first', endOffset: 3,
+	},
+
+	{
+		message: 'Выделение внутри цветного <B>',
+		from: '<b style="color: red">x--y</b>',
+		to: '<b style="color: red">x</b><b>--</b><b style="color: red">y</b>',
+		start: '#first #first',  startOffset: 1,
+		end: '#last #first', endOffset: 3,
+	},
+
+	{
+		message: 'Выделение внутри многоцветного <SPAN>',
+		from: '<span style="color: red; background: black;">x--y</span>',
+		to: '<span style="color: red; background: black;">x</span>' +
+			'<span style="background: black;">--</span>' +
+			'<span style="color: red; background: black;">y</span>',
+		start: '#first #first',  startOffset: 1,
+		end: '#last #first', endOffset: 3,
+	},
+
+	{
+		message: 'Выделение внутри многоцветного <B>',
+		from: '<b style="color: red; background: black;">x--y</b>',
+		to: '<b style="color: red; background: black;">x</b>' +
+			'<b style="background: black;">--</b>' +
+			'<b style="color: red; background: black;">y</b>',
+		start: '#first #first',  startOffset: 1,
+		end: '#last #first', endOffset: 3,
+	},
+
+	{
+		message: 'Выделение внутри одного цветного <SPAN> и заканчивается в другом',
+		from: '<span style="color: red">x-</span><span style="color: red">-y</span>',
+		to: '<span style="color: red">x</span>--<span style="color: red">y</span>',
+		start: '#first #first',  startOffset: 1,
+		end: '#last #first', endOffset: 1,
+	},
+
+	{
+		message: 'Выделение внутри цветного <SPAN> и заканчивается <B>',
+		from: '<span style="color: red">x-</span><b style="color: red">-y</b>',
+		to: '<span style="color: red">x</span>-<b>-</b><b style="color: red">y</b>',
+		start: '#first #first',  startOffset: 1,
+		end: '#last #first', endOffset: 1,
+	},
+
 ]);

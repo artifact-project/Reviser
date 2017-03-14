@@ -94,7 +94,6 @@ export function removeStyle(range: Range, tagName: string, attributes?: any): vo
 		return;
 	}
 
-	const restore: {first: Node, last: Node} = {first: null, last: null};
 	const matcher = createDOMMatcher(tagName, attributes);
 
 	let [start, startOffset, end, endOffset] = _toNormalizedRange(range);
@@ -103,9 +102,7 @@ export function removeStyle(range: Range, tagName: string, attributes?: any): vo
 
 	console.log('removeStyle', [start, startOffset, end, endOffset]);
 
-	if (startWrappedParent || endWrapperParent) {
-		[start, end, startOffset, endOffset] = removeStyleBetween(matcher, startWrappedParent, endWrapperParent, start, startOffset, end, endOffset);
-	}
+	[start, end, startOffset, endOffset] = removeStyleBetween(matcher, startWrappedParent, endWrapperParent, start, startOffset, end, endOffset);
 
 	let cursor = start;
 
@@ -210,7 +207,7 @@ function resizeWrapper(
 		);
 
 		if (end !== endFrag && (!isNode(startWrappedParent, 'span') || actualStylePropsLength !== matcher.styleMatcher.length)) {
-			startWrappedParent = <HTMLElement>cloneNode(startWrappedParent);
+			startWrappedParent = cloneNode<HTMLElement>(startWrappedParent);
 
 			applyMatcherStyle(startWrappedParent, matcher);
 
@@ -235,6 +232,10 @@ function resizeWrapper(
 	return [startWrappedParent, start, startOffset];
 }
 
+function _getDiffCSSProps(target: HTMLElement, matcher: IDOMMatcher): string[] {
+	return _getCSSPropsList(target).filter(name => !matcher.styleMatcher.attributes.hasOwnProperty(name));
+}
+
 function removeStyleBetween(
 	matcher: IDOMMatcher,
 	startWrappedParent: HTMLElement,
@@ -242,13 +243,15 @@ function removeStyleBetween(
 	start: Node,
 	startOffset: number,
 	end: Node,
-	endOffset: number
+	endOffset: number,
+	force?: boolean
 ): [Node, Node, number, number] {
 	let isSolidWrapper = startWrappedParent === endWrapperParent;
 	let startIsFirst = false;
 	let endIsLast = false;
 	let wrapStart;
 	let wrapEnd;
+	let isClone = false;
 
 	if (!startOffset && startWrappedParent) {
 		startIsFirst = getMaxDeepNode(startWrappedParent, 0, 'start')[0] === start;
@@ -262,8 +265,14 @@ function removeStyleBetween(
 		[wrapStart, wrapEnd] = unwrap(endWrapperParent, null, false);
 
 		if (isSolidWrapper) {
-			startWrappedParent = <HTMLElement>cloneNode(endWrapperParent);
+			isClone = true;
+			startWrappedParent = cloneNode<HTMLElement>(endWrapperParent);
 			wrapStart.parentNode.insertBefore(startWrappedParent, wrapStart);
+		}
+
+		if (wrapStart === end && isTextNode(end)) {
+			[wrapStart, end] = splitTextNode(<Text>end, endOffset);
+			endOffset = 0;
 		}
 
 		_applyStyle(
@@ -277,6 +286,22 @@ function removeStyleBetween(
 			'prev'
 		);
 
+		if (!force && !isSolidWrapper && (
+			!isNode(endWrapperParent, 'span')  && !isNode(startWrappedParent, matcher.tagName)
+			|| _getDiffCSSProps(endWrapperParent, matcher).length)
+		) {
+			_applyStyle(
+				matcher,
+				null,
+				removeMatcherStyle(cloneNode<HTMLElement>(endWrapperParent), matcher),
+				wrapStart,
+				0,
+				end,
+				endOffset,
+				'prev'
+			);
+		}
+
 		end = getSibling(endWrapperParent, 'prev');
 		endOffset = null; // нужно перерасчитать, но только в конце, потому что ещё начало не убрали
 
@@ -287,12 +312,21 @@ function removeStyleBetween(
 	}
 
 	if (startWrappedParent) {
-		if (!isSolidWrapper || endIsLast) {
-			[wrapStart] = unwrap(startWrappedParent);
-			wrapStart.parentNode.insertBefore(startWrappedParent, wrapStart);
-		}
-
 		if (!startIsFirst) {
+			if (!isSolidWrapper || endIsLast) {
+				[wrapStart, wrapEnd] = unwrap(startWrappedParent);
+				wrapStart.parentNode.insertBefore(startWrappedParent, wrapStart);
+			}
+
+			if (wrapStart === start && isTextNode(start)) {
+				[wrapStart, start] = splitTextNode(<Text>start, startOffset);
+				startOffset = 0;
+
+				if (start === end) {
+					endOffset = null;
+				}
+			}
+
 			_applyStyle(
 				matcher,
 				startWrappedParent,
@@ -304,13 +338,29 @@ function removeStyleBetween(
 				'next'
 			);
 
+			if (!force && (
+				!isNode(startWrappedParent, 'span') && !isNode(startWrappedParent, matcher.tagName) ||
+				_getDiffCSSProps(startWrappedParent, matcher).length
+			)) {
+				_applyStyle(
+					matcher,
+					null,
+					removeMatcherStyle(cloneNode<HTMLElement>(startWrappedParent), matcher),
+					start,
+					0,
+					isSolidWrapper ? end : wrapEnd,
+					getNodeLength(isSolidWrapper ? end : wrapEnd),
+					'next'
+				);
+			}
+
 			startOffset = 0;
 		} else {
-			// if (matcher.styleMatcher.length) {
-			// 	_cleanup(startWrappedParent, matcher);
-			// } else {
-				removeNode(startWrappedParent);
-			// }
+			if (matcher.styleMatcher.length && !isClone) {
+				_cleanup(startWrappedParent, matcher);
+			} else {
+				unwrap(startWrappedParent);
+			}
 		}
 	}
 
@@ -362,15 +412,12 @@ export function applyStyle(range: Range, tagName: string, attributes?: {[index: 
 				endWrapperParent = null;
 			} else if (isSolidWrapper) {
 				// Выделение внутри тега, нужно его разрезать
-				[start, end] = removeStyleBetween(matcher, startWrappedParent, endWrapperParent, start, startOffset, end, endOffset);
-
-				startOffset = 0;
-				endOffset = getNodeLength(end);
+				[start, end, startOffset, endOffset] = removeStyleBetween(matcher, startWrappedParent, endWrapperParent, start, startOffset, end, endOffset, true);
 
 				endFrag = end; // сомнительный ХАК!!!
 				endFragOffset = endOffset;
 
-				wrapperElement = applyMatcherStyle(<HTMLElement>cloneNode(startWrappedParent), matcher);
+				wrapperElement = applyMatcherStyle(cloneNode<HTMLElement>(startWrappedParent), matcher);
 				startWrappedParent = null;
 				endWrapperParent = null;
 			}

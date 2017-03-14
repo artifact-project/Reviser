@@ -262,8 +262,8 @@ export function normalizeNodes(start: Node, end: Node, replace?: NormalizeReplac
 	} while (mainLoop);
 }
 
-export function cloneNode(node: Node, deep?: boolean): Node {
-	return node.cloneNode(deep);
+export function cloneNode<T extends Node>(node: Node, deep?: boolean): T {
+	return <T>node.cloneNode(deep);
 }
 
 interface IMatcher<A, T> {
