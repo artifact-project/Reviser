@@ -103,27 +103,8 @@ export function removeStyle(range: Range, tagName: string, attributes?: any): vo
 
 	console.log('removeStyle', [start, startOffset, end, endOffset]);
 
-	startWrappedParent && (restore.first = startWrappedParent.firstChild);
-	endWrapperParent && (restore.last = endWrapperParent.lastChild);
-
 	if (startWrappedParent || endWrapperParent) {
-		if (startWrappedParent === endWrapperParent) {
-			_deepUnwrap(<HTMLElement>startWrappedParent, matcher);
-		} else {
-			startWrappedParent && _deepUnwrap(<HTMLElement>startWrappedParent, matcher);
-			endWrapperParent && _deepUnwrap(<HTMLElement>endWrapperParent, matcher);
-		}
-
-		if (endWrapperParent) {
-			end = getNodeFromRange(applyStyleBetween([end, endOffset], restore.last, tagName), 'start');
-			endOffset = 0;
-		}
-
-		if (startWrappedParent && (startOffset || getMaxDeepNode(restore.first, 0, 'start')[0] !== start)) {
-			start = getNodeFromRange(applyStyleBetween(restore.first, [start, startOffset], tagName), 'end');
-			start = getSibling(start) || getNextParentSibling(start);
-			startOffset = 0;
-		}
+		[start, end, startOffset, endOffset] = removeStyleBetween(matcher, startWrappedParent, endWrapperParent, start, startOffset, end, endOffset);
 	}
 
 	let cursor = start;
@@ -254,7 +235,7 @@ function removeStyleBetween(
 	startOffset: number,
 	end: Node,
 	endOffset: number
-) {
+): [Node, Node, number, number] {
 	let isSolidWrapper = startWrappedParent === endWrapperParent;
 	let startIsFirst = false;
 	let endIsLast = false;
@@ -265,11 +246,11 @@ function removeStyleBetween(
 		startIsFirst = getMaxDeepNode(startWrappedParent, 0, 'start')[0] === start;
 	}
 
-	if (endOffset && endOffset === getNodeLength(end)) {
+	if (endOffset && endWrapperParent && endOffset === getNodeLength(end)) {
 		endIsLast = getMaxDeepNode(endWrapperParent, 'max', 'end')[0] === end;
 	}
 
-	if (!endIsLast) {
+	if (!endIsLast && endWrapperParent) {
 		[wrapStart, wrapEnd] = unwrap(endWrapperParent, null, false);
 
 		if (isSolidWrapper) {
@@ -289,6 +270,7 @@ function removeStyleBetween(
 		);
 
 		end = getSibling(endWrapperParent, 'prev');
+		endOffset = null; // нужно перерасчитать, но только в конце, потому что ещё начало не убрали
 
 		if (isSolidWrapper) {
 			start = getSibling(startWrappedParent);
@@ -313,12 +295,14 @@ function removeStyleBetween(
 				startOffset,
 				'next'
 			);
+
+			startOffset = 0;
 		} else {
 			removeNode(startWrappedParent);
 		}
 	}
 
-	return [start, end];
+	return [start, end, startOffset, endOffset === null ? getNodeLength(end) : endOffset];
 }
 
 function _equalStyle(left: HTMLElement, right: HTMLElement): boolean {
@@ -539,7 +523,7 @@ function _applyStyle(
 
 		if (wrapperParent) {
 			if (parentChanged) {
-				isInlineElement(cursor) && _insertNode(wrapperParent, cursor, vector);
+				!hasEnd && isInlineElement(cursor) && _insertNode(wrapperParent, cursor, vector);
 				wrapperParent = null;
 				range[isPrevMode ? 'setEndAfter' : 'setStartBefore'](next);
 			} else {
@@ -563,11 +547,14 @@ function _applyStyle(
 				} else {
 					range[isPrevMode ? 'setStart' : 'setEnd'](cursor, endOffset);
 				}
+
 				surroundContents(range, cloneNode(wrapperElement));
+
 				return;
 			} else if (hasEnd && isEndLast) {
 				range[isPrevMode ? 'setStartBefore' : 'setEndAfter'](endRoot);
 				surroundContents(range, cloneNode(wrapperElement));
+
 				return;
 			}
 		}
