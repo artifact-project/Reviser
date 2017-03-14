@@ -4,6 +4,7 @@ import {testItFactory} from './_helpers';
 import {isTextNode} from '../pen-box/dom';
 
 const testIt = testItFactory((range) => removeStyle(range, 'b'));
+const testColorIt = testItFactory((range) => removeStyle(range, '*', {style: {color: '*'}}));
 
 QUnit.module('Reviser / style / removeStyle');
 
@@ -83,4 +84,72 @@ testIt([
 			assert.equal(range.endOffset, 1, 'end.offset');
 		}
 	},
+]);
+
+QUnit.module('Reviser / style / removeStyle / color');
+
+testColorIt([
+	{
+		message: 'Цветной <SPAN>',
+		from: '<span style="color: red">x</span>',
+		to: 'x',
+	},
+
+	{
+		message: 'Цветной <B>',
+		from: '<b style="color: red">x</b>',
+		to: '<b>x</b>',
+	},
+
+	{
+		message: 'Многоцветный <SPAN>',
+		from: '<span style="color: red; background: black;">x</span>',
+		to: '<span style="background: black;">x</span>',
+	},
+
+	{
+		message: 'Многоцветный <B>',
+		from: '<b style="color: red; background: black;">x</b>',
+		to: '<b style="background: black;">x</b>',
+	},
+
+	{
+		message: 'Выделен цветной <SPAN> и текст',
+		from: '<span style="color: red;">x</span>--y',
+		to: 'x--y',
+	},
+
+	{
+		message: 'Выделен цветной <B> и текст',
+		from: '<b style="color: red;">x</b>--y',
+		to: '<b>x</b>--y',
+	},
+
+	{
+		message: 'Выделен текст и цветной <SPAN>',
+		from: 'x--<span style="color: red;">y</span>',
+		to: 'x--y',
+	},
+
+	{
+		message: 'Выделен текст и цветной <B>',
+		from: 'x--<b style="color: red;">y</b>',
+		to: 'x--<b>y</b>',
+	},
+
+	{
+		message: 'Выделение начинается в цветном <SPAN> и заканчивается текстом',
+		from: '<span style="color: red;">x-</span>-y',
+		to: '<span style="color: red;">x</span>--y',
+		start: '#first #first',
+		startOffset: 1,
+	},
+
+	// {
+	// 	message: 'Выделение начинается в цветном <B> и заканчивается текстом',
+	// 	from: '<b style="color: red;">x-</b>-y',
+	// 	to: '<b style="color: red;">x</b><b>-</b>-y',
+	// 	start: '#first #first',
+	// 	startOffset: 1,
+	// },
 ]);

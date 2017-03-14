@@ -37,7 +37,7 @@ function _cleanup(el: HTMLElement, matcher: IDOMMatcher): [Node, Node] {
 
 			!el.style.length && el.removeAttribute('style');
 
-			if (isNode(el, 'span') && !el.attributes.length) {
+			if ((isNode(el, 'span') || isNode(el, matcher.tagName)) && !el.attributes.length) {
 				return unwrap(el);
 			}
 		}
@@ -121,6 +121,14 @@ export function removeStyle(range: Range, tagName: string, attributes?: any): vo
 function applyMatcherStyle(element: HTMLElement, matcher: IDOMMatcher): HTMLElement {
 	matcher.styleMatcher.keys.forEach(name => {
 		element.style.setProperty(name, matcher.styleMatcher.attributes[name]);
+	});
+
+	return element;
+}
+
+function removeMatcherStyle(element: HTMLElement, matcher: IDOMMatcher): HTMLElement {
+	matcher.styleMatcher.keys.forEach(name => {
+		element.style.removeProperty(name);
 	});
 
 	return element;
@@ -298,7 +306,11 @@ function removeStyleBetween(
 
 			startOffset = 0;
 		} else {
-			removeNode(startWrappedParent);
+			// if (matcher.styleMatcher.length) {
+			// 	_cleanup(startWrappedParent, matcher);
+			// } else {
+				removeNode(startWrappedParent);
+			// }
 		}
 	}
 
@@ -330,6 +342,7 @@ export function applyStyle(range: Range, tagName: string, attributes?: {[index: 
 	if (matcher.styleMatcher.length) {
 		// Вот это важный момент, нужно проверить на строгое соотвествие
 		if (startWrappedParent && endWrapperParent) {
+			// todo: сделать метод, который будет это проверять?
 			let startIsFirst = !startOffset && (getMaxDeepNode(startWrappedParent, 0, 'start')[0] === start);
 			let endIsLast = endOffset && (endOffset === getNodeLength(end)) && (getMaxDeepNode(endWrapperParent, 'max', 'end')[0] === end);
 
@@ -427,6 +440,7 @@ export function applyStyle(range: Range, tagName: string, attributes?: {[index: 
 	range.setEnd(end, endFrag ? endOffset : 0);
 }
 
+// todo: удалить?
 export function applyStyleBetween(start: RangePoint, end: RangePoint, tagName: string): Range {
 	const range = createRange(start, end);
 
