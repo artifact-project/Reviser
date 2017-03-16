@@ -82,7 +82,7 @@ function _toNormalizedRange(range: Range): [Node, number, Node, number] {
 	}
 
 	if (!isTextNode(end)) {
-		[end, endOffset] = getMaxDeepNode(end, endOffset, 'end');
+		[end, endOffset] = getMaxDeepNode(end, Math.max(endOffset -1, 0), 'end');
 	}
 
 	return [start, startOffset, end, endOffset];
@@ -94,7 +94,7 @@ export function removeStyle(range: Range, tagName: string, attributes?: any): vo
 		return;
 	}
 
-	const matcher = createDOMMatcher(tagName, attributes);
+	const matcher = createDOMMatcher(tagName, attributes, true);
 
 	let [start, startOffset, end, endOffset] = _toNormalizedRange(range);
 	let startWrappedParent = closest(start, matcher);
@@ -111,6 +111,7 @@ export function removeStyle(range: Range, tagName: string, attributes?: any): vo
 		cursor = cursor.contains(end) && cursor.firstChild || cursor.nextSibling || getNextParentSibling(cursor, 'next');
 	}
 
+	console.log('removeStyle.set', [start, startOffset, end, endOffset]);
 	range.setStart(start, startOffset);
 	range.setEnd(end, endOffset);
 }
@@ -388,6 +389,7 @@ export function applyStyle(range: Range, tagName: string, attributes?: {[index: 
 	let isSolidWrapper = startWrappedParent && startWrappedParent === endWrapperParent;
 	let endFrag; // используется при объединении враперов
 	let endFragOffset;
+	let endSelected = endOffset && endOffset === getNodeLength(end);
 
 	if (matcher.styleMatcher.length) {
 		// Вот это важный момент, нужно проверить на строгое соотвествие
@@ -414,9 +416,6 @@ export function applyStyle(range: Range, tagName: string, attributes?: {[index: 
 				// Выделение внутри тега, нужно его разрезать
 				[start, end, startOffset, endOffset] = removeStyleBetween(matcher, startWrappedParent, endWrapperParent, start, startOffset, end, endOffset, true);
 
-				endFrag = end; // сомнительный ХАК!!!
-				endFragOffset = endOffset;
-
 				wrapperElement = applyMatcherStyle(cloneNode<HTMLElement>(startWrappedParent), matcher);
 				startWrappedParent = null;
 				endWrapperParent = null;
@@ -433,8 +432,7 @@ export function applyStyle(range: Range, tagName: string, attributes?: {[index: 
 				startOffset,
 				'prev'
 			);
-			endFrag = end; // сомнительный ХАК!!!
-			endFragOffset = endOffset;
+			endSelected = endOffset === getNodeLength(end);
 		}
 
 		if (startWrappedParent) {
@@ -483,8 +481,17 @@ export function applyStyle(range: Range, tagName: string, attributes?: {[index: 
 		endWrapperParent ? 'prev' : 'next'
 	);
 
-	range.setStart(start, startWrappedParent ? startOffset : 0);
-	range.setEnd(end, endFrag ? endOffset : 0);
+	if (startWrappedParent || !startOffset) {
+		range.setStart(start, startOffset);
+	} else {
+		range.setStartAfter(start);
+	}
+
+	if (!endSelected && endOffset > 0){
+		range.setEndBefore(end);
+	} else {
+		range.setEnd(end, endOffset);
+	}
 }
 
 // todo: удалить?
@@ -600,7 +607,14 @@ function _applyStyle(
 				}
 
 				surroundContents(range, cloneNode(wrapperElement));
-				isPrevMode ? range.setEnd(next, getNodeLength(next)) : range.setStartBefore(next);
+
+				if (next) {
+					if (isPrevMode) {
+						range.setEnd(next, getNodeLength(next));
+					} else {
+						setRangeStart(range, next);
+					}
+				}
 			} else if (cursor === end) {
 				if (!isPrevMode && endOffset === getNodeLength(end)) {
 					// todo: надо дорабатывать логику `setRangeEnd`

@@ -1,4 +1,4 @@
-import {isNode, isTextNode, createElement} from './dom';
+import {isNode, isTextNode, createElement, getNodeLength} from './dom';
 
 export type RangePoint = Node | [Node, number];
 
@@ -48,16 +48,18 @@ export function getNodeFromRange(range: Range, type: 'start' | 'end'): Node {
 	return isTextNode(container) ? container : container.childNodes[offset ? offset - 1 : 0];
 }
 
-export function setRangeStart(range: Range, node: Node, offset?: number) {
+export function setRangeStart(range: Range, node: Node, offset?: number): void {
 	offset ? range.setStart(node, offset) : range.setStartBefore(node);
 }
 
-export function setRangeEnd(range: Range, node: Node, offset?: number) {
-	offset ? range.setEnd(node, offset) : range.setEndAfter(node);
+export function setRangeEnd(range: Range, node: Node, offset?: number): void {
+	offset && offset !== getNodeLength(node) ? range.setEnd(node, offset) : range.setEndAfter(node);
 }
 
-export function surroundContents(range: Range, tag: string | Node) {
-	!range.collapsed && range.surroundContents(isNode(<Node>tag) ? <Node>tag : createElement(<string>tag));
+export function surroundContents(range: Range, tag: string | Node): HTMLElement {
+	const newNode:Node = isNode(<Node>tag) ? <Node>tag : createElement(<string>tag);
+	!range.collapsed && range.surroundContents(newNode);
+	return <HTMLElement>newNode;
 }
 
 export function deleteContents(range: Range) {

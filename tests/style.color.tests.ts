@@ -21,8 +21,15 @@ testIt([
 
 	{
 		message: 'В середине есть <SPAN> покрашенный цветом, SPAN должен быть вырезан',
-		from: 'x<span style="color: blue">-</span>y',
-		to: '<span style="color: red;">x-y</span>',
+		from: '(x<span style="color: blue">-</span>y)',
+		to: '<span style="color: red;">(x-y)</span>',
+		onend(assert, range) {
+			assert.equal(range.startContainer.nodeValue, '(x', 'start');
+			assert.equal(range.startOffset, 0, 'start.offset');
+
+			assert.equal(range.endContainer.nodeValue, 'y)', 'end');
+			assert.equal(range.endOffset, 2, 'end.offset');
+		}
 	},
 
 	{
@@ -195,26 +202,31 @@ testIt([
 
 	{
 		message: 'Выделение начинается с цветного <SPAN> и заканчивается внутри другого цветного <SPAN>',
-		from: '<span style="color: blue;">x-</span><span style="color: green;">-y</span>',
-		to: '<span style="color: red;">x--</span><span style="color: green;">y</span>',
+		from: '<span style="color: blue;">x-</span><span style="color: green;">+y</span>',
+		to: '<span style="color: red;">x-+</span><span style="color: green;">y</span>',
 		// first: true,
 		end: '#last #first',
 		endOffset: 1,
 		onend(assert, range) {
-			assert.equal(range.endContainer.nodeValue, '-');
-			assert.equal(range.endOffset, 1);
+			assert.equal(range.startContainer.nodeValue, 'x-', 'start');
+			assert.equal(range.startOffset, 0, 'start.offset');
+			assert.equal(range.endContainer.nodeValue, '+', 'end');
+			assert.equal(range.endOffset, 1, 'end.offset');
 		}
 	},
 
 	{
 		message: 'Выделение начинается внутри цветного <SPAN> и заканчивается в конце другого цветного <SPAN>',
-		from: '<span style="color: blue;">x-</span><span style="color: green;">-y</span>',
-		to: '<span style="color: blue;">x</span><span style="color: red;">--y</span>',
+		from: '<span style="color: blue;">x-</span><span style="color: green;">+y</span>',
+		to: '<span style="color: blue;">x</span><span style="color: red;">-+y</span>',
 		start: '#first #first',
 		startOffset: 1,
 		onend(assert, range) {
-			assert.equal(range.startContainer.nodeValue, '-');
-			assert.equal(range.startOffset, 0);
+			assert.equal(range.startContainer.nodeValue, '-', 'start');
+			assert.equal(range.startOffset, 0, 'start.offset');
+
+			assert.equal(range.endContainer.nodeValue, '+y', 'end');
+			assert.equal(range.endOffset, 2, 'end.offset');
 		}
 	},
 
@@ -272,6 +284,33 @@ testIt([
 		start: '#first #first',
 		startOffset: 1,
 		end: '#last #first',
+		endOffset: 2,
+	},
+
+	{
+		message: 'Выделение начинается внутри <B> и заканчивается вынутри тестом',
+		from: '<b>x-.</b>.-y',
+		to: '<b>x<span style="color: red;">-.</span></b><span style="color: red;">.-</span>y',
+		start: '#first #first',
+		startOffset: 1,
+		end: '#last',
+		endOffset: 2,
+		onend(assert, range, frag) {
+			assert.equal(range.startContainer, frag.firstChild, 'start');
+			assert.equal(range.startOffset, 1, 'start.offset');
+
+			assert.equal(range.endContainer, frag, 'end');
+			assert.equal(range.endOffset, 2, 'end.offset');
+		}
+	},
+
+	{
+		message: 'Выделение начинается с [B > SPAN] и заканчивается <SPAN>',
+		from: '<b>x<span>--</span></b><span>++</span>y',
+		to: '<b>x<span><span style="color: red;">--</span></span></b><span style="color: red;"><span>++</span></span>y',
+		start: '#first',
+		startOffset: 1,
+		end: '#root',
 		endOffset: 2,
 	},
 ]);

@@ -1,22 +1,26 @@
 import {
 	closest, getMaxDeepNode, isTextNode, createElement, splitTextNode, getNodeLength,
-	createTextNode, ZWS, removeNode, insertAfter, getSibling
+	createTextNode, ZWS, removeNode, insertAfter, getSibling, createDOMMatcher
 } from '../pen-box/dom';
 import {removeStyle, applyStyle} from '../pen-box/style';
 import {createRange} from '../pen-box/selection';
 import {isEmptyString} from '../pen-box/backspace';
 
 
-export function wrap(range: Range, tagName: string) {
+export function wrap(range: Range, tagName: string, attributes?: any) {
+	const matcher = createDOMMatcher(tagName, attributes);
 	const {startContainer, startOffset} = range;
-	const startWrapper = closest(startContainer, tagName);
+
 	let [cursor, offset] = getMaxDeepNode(startContainer, startOffset, 'start');
+	let startWrapper = closest(cursor, matcher);
+
+	console.log('wrap:', range.collapsed, startWrapper, [range.startContainer, range.startOffset, range.endContainer, range.endOffset]);
 
 	if (range.collapsed) {
 		// Просто курсор в тексте
 		if (startWrapper) {
 			if (getNodeLength(startWrapper) === 1 && isEmptyString(startWrapper.firstChild.nodeValue)) {
-				// Пустая нода, просто удаляем и ставим курсор за ней
+				// Пустая нода, ставим курсор за ней и просто удаляем её
 				range.setStartAfter(startWrapper);
 				range.setEndAfter(startWrapper);
 				removeNode(startWrapper);
@@ -39,7 +43,7 @@ export function wrap(range: Range, tagName: string) {
 				const wrapperRange = createRange();
 
 				wrapperRange.selectNode(startWrapper);
-				removeStyle(wrapperRange, tagName);
+				removeStyle(wrapperRange, tagName, attributes);
 
 				// Востанавливаем позицию курсора
 				range.setStart(startContainer, startOffset);
@@ -47,7 +51,7 @@ export function wrap(range: Range, tagName: string) {
 			}
 		} else {
 			// Добавляем пустой тег и фокусируемся внутри него
-			const wrapper = createElement(tagName);
+			const wrapper = createElement(tagName === '*' ? 'span' : tagName, attributes);
 
 			if (isTextNode(cursor) && isEmptyString(cursor.nodeValue)) {
 				// Пустая нода или ZWS
@@ -79,7 +83,7 @@ export function wrap(range: Range, tagName: string) {
 		}
 	} else {
 		// Выделен текст
-		(startWrapper ? removeStyle : applyStyle)(range, tagName);
+		(startWrapper ? removeStyle : applyStyle)(range, tagName, attributes);
 	}
 }
 

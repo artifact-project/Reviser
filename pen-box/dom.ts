@@ -58,7 +58,7 @@ export function createElement(name: string, attributes?: {[index: string]: any})
 	return element;
 }
 
-export function listenFrom(container: HTMLElement, attr: string, handle: (action: string, target: HTMLElement, evt: Event) => void) {
+export function listenFrom(container: HTMLElement, eventName: string, attr: string, handle: (action: string, target: HTMLElement, evt: Event) => void) {
 	function handleEvent(evt: Event) {
 		let target: Node = <Node>evt.target;
 
@@ -76,10 +76,10 @@ export function listenFrom(container: HTMLElement, attr: string, handle: (action
 		}
 	}
 
-	container.addEventListener('click', handleEvent, false);
+	container.addEventListener(eventName, handleEvent, false);
 
 	return function dispose() {
-		container.removeEventListener('click', handleEvent, false);
+		container.removeEventListener(eventName, handleEvent, false);
 	};
 }
 
@@ -125,11 +125,15 @@ export function closest(node: Node, matcher: string | IDOMMatcher): HTMLElement 
 		matcher = createDOMMatcher(matcher);
 	}
 
-	while (node && !matcher.test(node)) {
+	while (node && node !== document) {
+		if (matcher.test(node)) {
+			return <HTMLElement>node;
+		}
+
 		node = node.parentNode;
 	}
 
-	return <HTMLElement>node;
+	return null;
 }
 
 export function isSelfClosedElement(node: Node): boolean {

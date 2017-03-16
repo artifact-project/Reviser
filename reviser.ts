@@ -209,51 +209,55 @@ export default class Reviser {
 	private _updateCaret(range: Range, silent?: boolean) {
 		let [node] = getMaxDeepNode(range.startContainer, range.startOffset, 'end');
 
-		const caret: ReviserCaret = {
-			path: [],
-			node
-		};
+		if (this.container.contains(node)) {
+			const caret: ReviserCaret = {
+				path: [],
+				node
+			};
 
-		while (node !== this.container) {
-			caret.path.push(node);
+			while (node !== this.container) {
+				caret.path.push(node);
 
-			if (!isTextNode(node)) {
-				switch (node.nodeName.toLowerCase()) {
-					case 'strong':
-						caret.bold = true;
-						break;
+				if (!isTextNode(node)) {
+					switch (node.nodeName.toLowerCase()) {
+						case 'strong':
+							caret.bold = true;
+							break;
 
-					case 'em':
-						caret.italic = true;
-						break;
+						case 'em':
+							caret.italic = true;
+							break;
 
-					case 'u':
-						caret.underline = true;
-						break;
+						case 'u':
+							caret.underline = true;
+							break;
 
-					case 's':
-						caret.strike = true;
-						break;
+						case 's':
+							caret.strike = true;
+							break;
+					}
 				}
+
+				node = node.parentNode;
 			}
 
-			node = node.parentNode;
+			this.caret = caret;
+			!silent && this.container.dispatchEvent(new CustomEvent('caret')); // возможно нужен debounce
 		}
-
-		this.caret = caret;
-		!silent && this.container.dispatchEvent(new CustomEvent('caret')); // возможно нужен debounce
 	}
 
-	getSelectionRange() {
+	getSelectionRange(): Range {
 		return this.lastRange;
 	}
 
-	setSelection(range: Range) {
+	setSelection(range: Range): void {
 		setSelection(range);
+
 		this._updateCaret(range);
+		this.lastRange = range;
 	}
 
-	revertFocus(newRange?: Range) {
+	revertFocus(newRange?: Range): void {
 		if (newRange) {
 			this.setSelection(newRange);
 		} else if (this.lastRange) {

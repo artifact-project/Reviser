@@ -1,5 +1,5 @@
 import QUnit, {Assert} from 'qunit';
-import {createRange} from '../pen-box/selection';
+import {createRange, setSelection} from '../pen-box/selection';
 import {createElement, createTextNode, setContentEditable, ZWS} from '../pen-box/dom';
 import {setCursorToEnd} from '../pen-box/cursor';
 
@@ -47,12 +47,15 @@ interface ICase {
 	end?: string;
 	endOffset?: number;
 	onend?: (assert:Assert, range: Range, container?: HTMLElement) => void;
+	debug?: boolean;
 }
 
 function querySelector(node: Element, selector: string): Node {
 	let result: Node = null;
 
-	if (selector === '#first') {
+	if (selector === '#root') {
+		result = node;
+	} else if (selector === '#first') {
 		result = node.firstChild;
 	} else if (selector === '#last') {
 		result = node.lastChild;
@@ -72,7 +75,7 @@ function querySelector(node: Element, selector: string): Node {
 
 export function testItFactory(exec: (range: Range, container?: HTMLElement) => void, options?:IEditableFragmentOptions): (cases:ICase[]) => void {
 	return function testIt(cases:ICase[]): void {
-		cases.forEach(({message, from, to, first, last, start, startOffset, end, endOffset, onend}) => {
+		cases.forEach(({message, from, to, first, last, start, startOffset, end, endOffset, onend, debug}) => {
 			QUnit.test(message || `${from} -> ${to}`.replace(new RegExp(ZWS, 'g'), '{ZWS}'), (assert) => {
 				const {fragment, range} = createEditableFragment(from, options || {select: true});
 				const {firstChild, lastChild} = fragment;
@@ -90,7 +93,10 @@ export function testItFactory(exec: (range: Range, container?: HTMLElement) => v
 					range.setEnd(fragment, endOffset);
 				}
 
-				console.dir(fragment);
+				if (debug) {
+					document.body.appendChild(fragment);
+				}
+
 				exec(range, fragment);
 
 				assert.equal(fragment.innerHTML, to, 'form -> to');
@@ -102,6 +108,7 @@ export function testItFactory(exec: (range: Range, container?: HTMLElement) => v
 					assert.ok(false, 'selection range');
 				}
 
+				debug && setSelection(range);
 				onend && onend(assert, range, fragment);
 			});
 		});

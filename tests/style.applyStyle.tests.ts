@@ -8,13 +8,26 @@ const testIt = testItFactory((range) => applyStyle(range, 'b'));
 
 // Голый текст
 testIt([
-	{from: 'x', to: '<b>x</b>'},
+	{
+		from: 'x', to: '<b>x</b>',
+		onend(assert, range, frag) {
+			assert.equal(frag.childNodes.length, 1);
+		}
+	},
+
+
 	{from: 'x<i>y</i>', to: '<b>x<i>y</i></b>'},
 	{from: 'x<i>y</i>', to: 'x<b><i>y</i></b>', start: '#first', startOffset: 1},
 	{from: 'x<i>yz</i>', to: '<b>x</b><i><b>y</b>z</i>', end: 'i #first', endOffset: 1},
 	{from: 'x<i>y<u>z<em>y</em>x</u></i>', to: '<b>x</b><i><b>y</b><u><b>z<em>y</em></b>x</u></i>', end: 'em', endOffset: 1},
 	{from: 'x<i>y<u>z<em>yx</em></u></i>', to: '<b>x</b><i><b>y</b><u><b>z</b><em><b>y</b>x</em></u></i>', end: 'em #first', endOffset: 1},
-	{from: 'x<i>y<u>z<div>y</div>x</u></i>', to: '<b>x</b><i><b>y</b><u><b>z</b><div><b>y</b></div>x</u></i>', end: 'div', endOffset: 1},
+
+	{
+		from: '(x<i>y<u>z<div>y)</div>x</u></i>',
+		to: '<b>(x</b><i><b>y</b><u><b>z</b><div><b>y)</b></div>x</u></i>',
+		end: 'div',
+		endOffset: 1,
+	},
 ]);
 
 
@@ -65,8 +78,45 @@ testIt([
 // <b/> где-то между началом и концом
 testIt([
 	{from: 'x<b>-</b>y', to: '<b>x-y</b>'},
+	{
+		message: 'Выделен <B> между тестом',
+		from: 'x<b>--</b>y',
+		to: 'x<b>--</b>y',
+		start: '#root',
+		startOffset: 1,
+		end: '#root',
+		endOffset: 2,
+		onend(assert, range, frag) {
+			assert.equal(range.startContainer, frag, 'start');
+			assert.equal(range.startOffset, 1, 'start.offset');
+
+			assert.equal(range.endContainer, frag, 'end');
+			assert.equal(range.endOffset, 2, 'end.offset');
+		}
+	},
+
 	{from: '<b>x</b><b>-</b>y', to: '<b>x-y</b>'},
 	{from: '<b>x</b>-<b>-</b>y', to: '<b>x--y</b>'},
 	{from: '<div>x</div><b>-</b>y', to: '<div><b>x</b></div><b>-y</b>'},
 	{from: '<div><b>x</b></div><b>-</b>y', to: '<div><b>x</b></div><b>-y</b>', start: 'b #first'},
+]);
+
+
+// Разное
+testIt([
+	{
+		message: '<em>ht(tp</em>://mai)l.ru',
+		from: '<em>http</em>://mail.ru',
+		to: '<em>ht<b>tp</b></em><b>://ma</b>il.ru',
+		start: 'em #first',
+		startOffset: 2,
+		end: '#last',
+		endOffset: 5,
+		onend(assert, range, frag) {
+			assert.equal(range.startContainer, frag.firstChild, 'start');
+			assert.equal(range.startOffset, 1, 'start.offset');
+			assert.equal(range.endContainer, frag, 'end');
+			assert.equal(range.endOffset, 2, 'end.offset');
+		}
+	},
 ]);
