@@ -75,6 +75,7 @@ export default class Reviser {
 		(this.view.toolbar) && this.root.appendChild(this.view.toolbar);
 		(this.view.content) && this.root.appendChild(this.view.content);
 
+		this._setupBaseStyle();
 		this._setupEvents();
 		this._setupExtensions();
 
@@ -192,6 +193,13 @@ export default class Reviser {
 		if (evt.type !== 'blur') {
 			this.lastRange = range;
 		}
+	}
+
+	private _setupBaseStyle() {
+		// todo: defaultStyle
+		this.container.style.textAlign = 'left';
+		this.container.style.wordWrap = 'break-word';
+		this.container.style.whiteSpace = 'normal';
 	}
 
 	private _setupEvents() {

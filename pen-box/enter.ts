@@ -1,7 +1,7 @@
 import {deleteContents} from './selection';
 import {
 	createElement, getNodeLength, isTextNode, getSibling, splitTextNode, isInlineElement,
-	createTextNode, ZWS
+	createTextNode, ZWS, getParentSibling
 } from './dom';
 import {setCursorToEnd} from './cursor';
 import {isEmptyString} from './backspace';
@@ -16,21 +16,28 @@ export default function enter(range: Range, container: HTMLElement): boolean {
 	console.log('enter', node, offset, getNodeLength(node));
 
 	if (isTextNode(node)) {
-		let parent = node.parentNode;
+		let {parentNode} = node;
 
 		if (offset > 0) {
 			if (getNodeLength(node) === offset) {
-				node = getSibling(node);
+				let next = getSibling(node);
+
+				if (!next) {
+					parentNode = node.parentNode;
+					next = parentNode.nextSibling;
+				}
+
+				node = next;
 			} else {
 				node = splitTextNode(<Text>node, offset)[1];
 			}
 		}
 
-		if (isEmptyString(node.nodeValue)) {
+		if (isTextNode(node) && isEmptyString(node.nodeValue)) {
 			node.nodeValue = ZWS;
 		}
 
-		parent.insertBefore(br, node);
+		parentNode.insertBefore(br, node);
 	} else {
 		range.commonAncestorContainer.insertBefore(br, node.childNodes[offset]);
 	}

@@ -6,7 +6,7 @@ import {
 	isInlineElement,
 	splitTextNode,
 	getSibling,
-	getNextParentSibling,
+	getParentSibling,
 	unwrap,
 	getMaxDeepNode, createElement, cloneNode, createDOMMatcher, IDOMMatcher, removeNode
 } from './dom';
@@ -108,7 +108,7 @@ export function removeStyle(range: Range, tagName: string, attributes?: any): vo
 
 	while (cursor !== end && cursor != null) {
 		!isTextNode(cursor) && _deepUnwrap(<HTMLElement>cursor, matcher);
-		cursor = cursor.contains(end) && cursor.firstChild || cursor.nextSibling || getNextParentSibling(cursor, 'next');
+		cursor = cursor.contains(end) && cursor.firstChild || cursor.nextSibling || getParentSibling(cursor, 'next');
 	}
 
 	console.log('removeStyle.set', [start, startOffset, end, endOffset]);
@@ -538,7 +538,7 @@ function _applyStyle(
 		if (cursor) {
 			matcher.test(cursor) && (cursor = _deepUnwrap(<HTMLElement>cursor, matcher)[+isPrevMode]);
 		} else {
-			cursor = getNextParentSibling(wrapperParent, vector);
+			cursor = getParentSibling(wrapperParent, vector);
 			wrapperParent = null;
 
 			matcher.test(cursor) && (cursor = _deepUnwrap(<HTMLElement>cursor, matcher)[+isPrevMode]);
@@ -581,7 +581,7 @@ function _applyStyle(
 				parentChanged = 0;
 
 				if (!next) {
-					next = getNextParentSibling(cursor, vector);
+					next = getParentSibling(cursor, vector);
 					parentChanged = -1;
 				}
 			}

@@ -1,31 +1,18 @@
 import {ReviserViewFactory, ReviserView, default as Reviser} from '../reviser';
 import {listenFrom} from '../pen-box/dom';
-import commandBold, {wrap as commandWrap} from '../commands/bold';
+
+import commandBold from '../commands/bold';
 import commandItalic from '../commands/italic';
 import commandUnderline from '../commands/underline';
 import commandStrike from '../commands/strike';
-import {removeStyle} from '../pen-box/style';
+import commandTextColor from '../commands/text-color';
+import commandBackgroundColor from '../commands/background-color';
+import commandTextAlign from '../commands/text-align';
 
 interface BootstrapViewConfig {
 	height?: string;
 }
 
-
-function createApplyStyleAction(styleName: string): (range: Range, value: string) => void {
-	return (range, value: string) => {
-		const attrs = {
-			style: {
-				[styleName]: value,
-			}
-		};
-
-		if (value === 'none') {
-			removeStyle(range, '*', attrs);
-		} else {
-			commandWrap(range, '*', attrs);
-		}
-	};
-}
 
 const colors = [
 	'none', '#ffffff', '#bcbcbc', '#6c6c6c', '#454545', '#2c2c2c', '#000000',
@@ -104,19 +91,19 @@ const toolbarTemplate = (cfg: BootstrapViewConfig) => `
 		</div>
 	
 		<div class="btn-group" role="group" aria-label="Font style">
-			<button type="button" class="btn btn-default" title="Align left">
+			<button data-action="text-align" data-value="left" type="button" class="btn btn-default" title="Align left">
 				<i class="fa fa-align-left" aria-hidden="true"></i>
 			</button>
 	
-			<button type="button" class="btn btn-default" title="Align center">
+			<button data-action="text-align" data-value="center" type="button" class="btn btn-default" title="Align center">
 				<i class="fa fa-align-center" aria-hidden="true"></i>
 			</button>
 	
-			<button type="button" class="btn btn-default" title="Align right">
+			<button data-action="text-align" data-value="right" type="button" class="btn btn-default" title="Align right">
 				<i class="fa fa-align-right" aria-hidden="true"></i>
 			</button>
 	
-			<button type="button" class="btn btn-default" title="Align justify">
+			<button data-action="text-align" data-value="justify" type="button" class="btn btn-default" title="Align justify">
 				<i class="fa fa-align-justify" aria-hidden="true"></i>
 			</button>
 		</div>
@@ -165,9 +152,10 @@ const actions:{[index:string]: (range: Range, value?: string) => void} = {
 	'bold': (range) => commandBold(range),
 	'italic': (range) => commandItalic(range),
 	'underline': (range) => commandUnderline(range),
-	'strike':(range) => commandStrike(range),
-	'text-color': createApplyStyleAction('color'),
-	'background-color': createApplyStyleAction('background-color'),
+	'strike': (range) => commandStrike(range),
+	'text-color': (range, color) => commandTextColor(range, color),
+	'background-color': (range, color) => commandBackgroundColor(range, color),
+	'text-align': (range, align) => commandTextAlign(range, align),
 };
 
 export default function bootstrapViewConfigurator(config: BootstrapViewConfig): ReviserViewFactory {

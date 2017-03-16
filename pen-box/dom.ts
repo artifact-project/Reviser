@@ -63,8 +63,8 @@ export function listenFrom(container: HTMLElement, eventName: string, attr: stri
 		let target: Node = <Node>evt.target;
 
 		while (target !== container) {
-			if (target.nodeType === ELEMENT_NODE) {
-				const action = (<Element>target).getAttribute(attr);
+			if (isElement(target)) {
+				const action = target.getAttribute(attr);
 
 				if (action) {
 					handle(action, <HTMLElement>target, evt);
@@ -90,6 +90,10 @@ export function createTextNode(value: string = ''): Text {
 
 export function isNode(node: Node, name?: string): boolean {
 	return node ? node.nodeType > 0 && (name == null || name.toLowerCase() === node.nodeName.toLowerCase()) : false;
+}
+
+export function isElement(node: Node): node is Element {
+	return node ? node.nodeType === ELEMENT_NODE : false;
 }
 
 export function isTextNode(node: Node): node is Text {
@@ -153,6 +157,10 @@ export function isBlockElement(node: Node, style?: CSSStyleDeclaration): boolean
 	}
 }
 
+export function isContentEditable(node: HTMLElement): boolean {
+	return isElement(node) && /^(true|on)$/i.test(node.contentEditable.toString());
+}
+
 export function isZeroSizeElement(node: Node, style?: CSSStyleDeclaration): boolean {
 	if (node) {
 		style = style || window.getComputedStyle(<Element>node);
@@ -204,14 +212,14 @@ export function getSibling(node: Node, type: 'next' | 'prev' = 'next'): Node {
 	return node ? (type === 'next' ? node.nextSibling : node.previousSibling) : null;
 }
 
-export function getNextParentSibling(node: Node, type: 'next' | 'prev' = 'next', context?: HTMLElement): Node {
+export function getParentSibling(node: Node, type: 'next' | 'prev' = 'next', context?: HTMLElement): Node {
 	const {parentNode} = node;
 
 	if (node === context || parentNode === node) {
 		return null;
 	}
 
-	return parentNode ? getSibling(parentNode, type) || getNextParentSibling(parentNode, type) : null;
+	return parentNode ? getSibling(parentNode, type) || getParentSibling(parentNode, type) : null;
 }
 
 export function getMaxDeepNode(node: Node, offset: number | 'max', type: 'start' | 'end'): [Node, number] {

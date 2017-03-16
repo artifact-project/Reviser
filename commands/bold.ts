@@ -1,6 +1,6 @@
 import {
 	closest, getMaxDeepNode, isTextNode, createElement, splitTextNode, getNodeLength,
-	createTextNode, ZWS, removeNode, insertAfter, getSibling, createDOMMatcher
+	createTextNode, ZWS, removeNode, insertAfter, createDOMMatcher
 } from '../pen-box/dom';
 import {removeStyle, applyStyle} from '../pen-box/style';
 import {createRange} from '../pen-box/selection';
