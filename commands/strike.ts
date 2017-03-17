@@ -1,5 +1,5 @@
-import {wrap} from './bold';
+import {apply} from './bold';
 
 export default function commandStrike(range: Range) {
-	wrap(range, 's');
+	apply(range, 's');
 }

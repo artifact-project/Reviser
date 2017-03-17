@@ -1,5 +1,5 @@
-import {wrap} from './bold';
+import {apply} from './bold';
 
 export default function commandItalic(range: Range) {
-	wrap(range, 'em');
+	apply(range, 'em');
 }

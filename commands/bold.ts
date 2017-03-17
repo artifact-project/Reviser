@@ -7,18 +7,18 @@ import {createRange} from '../pen-box/selection';
 import {isEmptyString} from '../pen-box/backspace';
 
 
-export function wrap(range: Range, tagName: string, attributes?: any) {
-	const matcher = createDOMMatcher(tagName, attributes);
+export function apply(range: Range, tagName: string, attributes?: any, remove?: boolean) {
+	const matcher = createDOMMatcher(tagName, attributes, true);
 	const {startContainer, startOffset} = range;
 
 	let [cursor, offset] = getMaxDeepNode(startContainer, startOffset, 'start');
 	let startWrapper = closest(cursor, matcher);
 
-	console.log('wrap:', range.collapsed, startWrapper, [range.startContainer, range.startOffset, range.endContainer, range.endOffset]);
+	console.log('apply:', range.collapsed, startWrapper, [range.startContainer, range.startOffset, range.endContainer, range.endOffset]);
 
 	if (range.collapsed) {
-		// Просто курсор в тексте
 		if (startWrapper) {
+			// Курсор внутри нужного нам врапера
 			if (getNodeLength(startWrapper) === 1 && isEmptyString(startWrapper.firstChild.nodeValue)) {
 				// Пустая нода, ставим курсор за ней и просто удаляем её
 				range.setStartAfter(startWrapper);
@@ -83,7 +83,7 @@ export function wrap(range: Range, tagName: string, attributes?: any) {
 		}
 	} else {
 		// Выделен текст
-		(startWrapper ? removeStyle : applyStyle)(range, tagName, attributes);
+		(remove || startWrapper ? removeStyle : applyStyle)(range, tagName, attributes);
 	}
 }
 
@@ -93,5 +93,5 @@ export function wrap(range: Range, tagName: string, attributes?: any) {
  * @param range
  */
 export default function commandBold(range: Range) {
-	wrap(range, 'strong');
+	apply(range, 'strong');
 }

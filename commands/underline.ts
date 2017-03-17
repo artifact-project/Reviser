@@ -1,5 +1,5 @@
-import {wrap} from './bold';
+import {apply} from './bold';
 
 export default function commandUnderline(range: Range) {
-	wrap(range, 'u');
+	apply(range, 'u');
 }
